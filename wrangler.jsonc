@@ -1,0 +1,95 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "finance-tw-einvoice-adapter",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-08-08",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "minify": true,
+  "limits": {
+    "cpu_ms": 300000
+  },
+  "vars": {
+    "ENVIRONMENT": "development",
+    "EGRESS_BASE_URL": "https://turnkey-egress.example.internal",
+    "MAX_SUBMISSION_BYTES": "15000000",
+    "EGRESS_SESSION_TTL_SECONDS": "300",
+    "GATEWAY_API_VERSION": "3.1.3",
+    "TURNKEY_COMPAT_VERSION": "3.2.1"
+  },
+  "d1_databases": [
+    {
+      "binding": "TURNKEY_DB",
+      "database_name": "finance-tw-einvoice",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "TURNKEY_FILES",
+      "bucket_name": "finance-tw-einvoice"
+    }
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "TURNKEY_JOBS",
+        "queue": "finance-tw-einvoice-jobs"
+      },
+      {
+        "binding": "FINANCE_EVENTS",
+        "queue": "finance-country-adapter-events"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "finance-tw-einvoice-jobs",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5,
+        "max_retries": 5,
+        "dead_letter_queue": "finance-tw-einvoice-jobs-dlq"
+      }
+    ]
+  },
+  "workflows": [
+    {
+      "name": "finance-tw-einvoice-transmission",
+      "binding": "TRANSMISSION_WORKFLOW",
+      "class_name": "TransmissionWorkflow"
+    },
+    {
+      "name": "finance-tw-einvoice-inbound",
+      "binding": "INBOUND_WORKFLOW",
+      "class_name": "InboundWorkflow"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "TRANSMISSION_COORDINATOR",
+        "class_name": "TransmissionCoordinator"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["TransmissionCoordinator"]
+    }
+  ],
+  "triggers": {
+    "crons": ["*/5 * * * *"]
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.05
+    }
+  }
+}

@@ -1,0 +1,3 @@
+ADAPTER_API_KEY=replace-with-a-local-only-key
+EGRESS_HMAC_SECRET=replace-with-the-same-secret-as-the-egress-agent
+CREDENTIAL_ENCRYPTION_KEY=replace-with-base64-for-exactly-32-random-bytes

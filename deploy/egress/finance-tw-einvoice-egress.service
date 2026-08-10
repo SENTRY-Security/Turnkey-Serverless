@@ -1,0 +1,22 @@
+[Unit]
+Description=Finance Taiwan e-Invoice fixed-IP egress agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=turnkey
+Group=turnkey
+WorkingDirectory=/opt/turnkey
+EnvironmentFile=/etc/turnkey/egress.env
+ExecStart=/usr/bin/node /opt/turnkey/dist/egress/egress/server.js
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/etc/turnkey /opt/turnkey
+
+[Install]
+WantedBy=multi-user.target

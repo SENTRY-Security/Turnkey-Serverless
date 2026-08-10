@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema targetNamespace="urn:GEINV:InvoiceEnvelope:4.1" xmlns="urn:GEINV:InvoiceEnvelope:4.1" xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+    <xsd:include schemaLocation="../GenericType_4.0.xsd"/>
+    <xsd:element name="InvoiceEnvelope">
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element name="From" type="PartyInfoType"/>
+                <xsd:element name="FromVAC" type="RoutingInfoType"/>
+                <xsd:element name="To" type="PartyInfoType"/>
+                <xsd:element name="ToVAC" type="RoutingInfoType"/>
+                <xsd:element name="InvoicePack">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:any namespace="
+                            urn:GEINV:eInvoiceMessage:A0101:4.0
+                            urn:GEINV:eInvoiceMessage:A0102:4.0
+                            urn:GEINV:eInvoiceMessage:A0201:4.0
+                            urn:GEINV:eInvoiceMessage:A0202:4.0
+                            urn:GEINV:eInvoiceMessage:A0301:4.0
+                            urn:GEINV:eInvoiceMessage:A0302:4.0
+
+                            urn:GEINV:eInvoiceMessage:A0101:4.1
+                            urn:GEINV:eInvoiceMessage:A0102:4.1
+                            urn:GEINV:eInvoiceMessage:A0201:4.1
+                            urn:GEINV:eInvoiceMessage:A0202:4.1
+                            urn:GEINV:eInvoiceMessage:A0301:4.1
+                            urn:GEINV:eInvoiceMessage:A0302:4.1
+
+                            urn:GEINV:eInvoiceMessage:B0101:4.0
+                            urn:GEINV:eInvoiceMessage:B0102:4.0
+                            urn:GEINV:eInvoiceMessage:B0201:4.0
+                            urn:GEINV:eInvoiceMessage:B0202:4.0
+
+                            urn:GEINV:eInvoiceMessage:B0101:4.1
+                            urn:GEINV:eInvoiceMessage:B0102:4.1
+                            urn:GEINV:eInvoiceMessage:B0201:4.1
+                            urn:GEINV:eInvoiceMessage:B0202:4.1
+
+                            urn:GEINV:eInvoiceMessage:F0401:4.0
+                            urn:GEINV:eInvoiceMessage:F0501:4.0
+                            urn:GEINV:eInvoiceMessage:F0701:4.0
+                            urn:GEINV:eInvoiceMessage:G0401:4.0
+                            urn:GEINV:eInvoiceMessage:G0501:4.0
+                            urn:GEINV:eInvoiceMessage:G0701:4.0
+
+                            urn:GEINV:eInvoiceMessage:F0401:4.1
+                            urn:GEINV:eInvoiceMessage:F0501:4.1
+                            urn:GEINV:eInvoiceMessage:F0701:4.1
+                            urn:GEINV:eInvoiceMessage:G0401:4.1
+                            urn:GEINV:eInvoiceMessage:G0501:4.1
+                            urn:GEINV:eInvoiceMessage:G0701:4.1
+
+                            urn:GEINV:eInvoiceMessage:E0401:4.0
+                            urn:GEINV:eInvoiceMessage:E0402:4.0
+
+                            urn:GEINV:eInvoiceMessage:E0401:4.1
+                            urn:GEINV:eInvoiceMessage:E0402:4.1
+
+                            urn:GEINV:E0501:4.0
+                            urn:GEINV:eInvoiceMessage:E0502:4.0
+                            urn:GEINV:eInvoiceMessage:E0503:4.0
+
+                            urn:GEINV:E0501:4.1
+                            urn:GEINV:eInvoiceMessage:E0502:4.1
+                            urn:GEINV:eInvoiceMessage:E0503:4.1
+                            
+                            " processContents="lax" minOccurs="1" maxOccurs="1000"/>
+                        </xsd:sequence>
+                        <xsd:attribute name="messageType" type="MessageTypeEnum"/>
+                        <xsd:attribute name="count" type="xsd:positiveInteger"/>
+                        <xsd:attribute name="version" type="xsd:string"/>
+                    </xsd:complexType>
+                </xsd:element>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+</xsd:schema>

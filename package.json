@@ -1,0 +1,39 @@
+{
+  "name": "finance-tw-einvoice-adapter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Taiwan MOF e-Invoice Turnkey adapter for a multi-country Finance platform",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "npm run typecheck && npm run build:egress && npm run build:worker",
+    "build:egress": "tsc -p tsconfig.egress.json",
+    "build:worker": "wrangler deploy --dry-run --outdir dist/worker",
+    "cf:types": "wrangler types",
+    "check": "npm run cf:types && npm run typecheck && npm test",
+    "dev:worker": "wrangler dev --local",
+    "dev:egress": "tsx watch src/egress/server.ts",
+    "start:egress": "node dist/egress/egress/server.js",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.egress.json --noEmit"
+  },
+  "dependencies": {
+    "@xmldom/xmldom": "0.9.10",
+    "fflate": "0.8.3",
+    "node-forge": "1.4.0",
+    "ssh2": "1.17.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.20.3",
+    "@types/node": "26.2.0",
+    "@types/node-forge": "1.3.14",
+    "@types/ssh2": "1.15.5",
+    "tsx": "4.23.12",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10",
+    "wrangler": "4.120.0"
+  }
+}

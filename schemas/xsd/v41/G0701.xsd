@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns="urn:GEINV:eInvoiceMessage:G0701:4.1" xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="urn:GEINV:eInvoiceMessage:G0701:4.1" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xsd:include schemaLocation="../common/GenericType_4.0.xsd"/>
+	<!-- 註銷折讓單: G0701 -->
+	<xsd:element name="VoidAllowance">
+		<xsd:complexType>
+			<xsd:all>
+				<!-- 註銷折讓單號碼 -->
+				<xsd:element name="VoidAllowanceNumber" type="AllowanceNumberType"/>
+				<!-- 折讓種類 -->
+				<xsd:element name="AllowanceType" type="AllowanceTypeEnum"/>
+				<!-- 折讓單日期 -->
+				<xsd:element name="AllowanceDate" type="DateType"/>
+				<!-- 買方識別碼 -->
+				<xsd:element name="BuyerId" type="BAN"/>
+				<!-- 賣方識別碼 -->
+				<xsd:element name="SellerId" type="BAN"/>
+				<!-- 註銷日期 -->
+				<xsd:element name="VoidDate" type="DateType"/>
+				<!-- 註銷時間 -->
+				<xsd:element name="VoidTime" type="TimeType"/>
+				<!-- 註銷原因 -->
+				<xsd:element name="VoidReason">
+					<xsd:simpleType>
+						<xsd:restriction base="xsd:string">
+							<xsd:whiteSpace value="collapse"/>
+						    <xsd:minLength value="1"/>
+							<xsd:maxLength value="20"/>
+						</xsd:restriction>
+					</xsd:simpleType>
+				</xsd:element>
+				<!-- 備註 -->
+				<xsd:element name="Remark" minOccurs="0">
+					<xsd:simpleType>
+						<xsd:restriction base="xsd:string">
+							<xsd:whiteSpace value="collapse"/>
+							<xsd:maxLength value="200"/>
+						</xsd:restriction>
+					</xsd:simpleType>
+				</xsd:element>
+			</xsd:all>
+		</xsd:complexType>
+	</xsd:element>
+</xsd:schema>

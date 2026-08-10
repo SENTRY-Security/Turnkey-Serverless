@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsd:schema xmlns="urn:GEINV:eInvoiceMessage:E0504:4.1"
+            xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="urn:GEINV:eInvoiceMessage:E0504:4.1"
+            elementFormDefault="qualified"
+            attributeFormDefault="unqualified">
+  <xsd:include schemaLocation="../GenericType_4.0.xsd" />
+  <!-- 中獎清冊 -->
+  <xsd:element name="Award">
+    <xsd:complexType>
+      <xsd:all>
+        <!-- Main -->
+        <xsd:element name="Main" type="Main" />
+        <!-- Details -->
+        <xsd:element name="Details" type="Details" />
+      </xsd:all>
+    </xsd:complexType>
+  </xsd:element>
+  <!-- 主檔資料 -->
+  <xsd:complexType name="Main">
+    <xsd:all>
+      <!-- 總公司統編 -->
+      <xsd:element name="HeadBan" type="BAN" />
+      <!-- 期別 -->
+      <xsd:element name="YearMonth">
+        <xsd:simpleType>
+          <xsd:restriction base="xsd:string">
+            <xsd:minLength value="5" />
+            <xsd:maxLength value="5" />
+            <xsd:pattern value="\d{3}0[2|4|6|8]|\d{3}1[0|2]" />
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+      <!-- 中獎清冊類別 -->
+      <xsd:element name="AwardListType">
+        <xsd:simpleType>
+          <xsd:restriction base="xsd:string">
+            <xsd:maxLength value="1" />
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+      <!-- 明細記錄總筆數 -->
+      <xsd:element name="TotalRecordCnt">
+        <xsd:simpleType>
+          <xsd:restriction base="xsd:decimal">
+            <xsd:totalDigits value="7" />
+            <xsd:minInclusive value="0"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+      <!-- 明細記錄獎金總計 -->
+      <xsd:element name="TotalPrizeAmount">
+        <xsd:simpleType>
+          <xsd:restriction base="xsd:decimal">
+            <xsd:totalDigits value="15" />
+            <xsd:minInclusive value="0"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+      <!-- 領獎期間-起始日期-->
+      <xsd:element name="RecAwardBegin">
+        <xsd:simpleType>
+          <xsd:restriction base="xsd:string">
+            <xsd:maxLength value="7" />
+            <xsd:pattern value="[0-9][0-9][0-9]((0[1-9]|1[0-2]))((0[1-9]|[1-2][0-9])|(3[0-1]))"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+      <!-- 領獎期間-截止日期-->
+      <xsd:element name="RecAwardEnd">
+        <xsd:simpleType>
+          <xsd:restriction base="xsd:string">
+            <xsd:maxLength value="7" />
+            <xsd:pattern value="[0-9][0-9][0-9]((0[1-9]|1[0-2]))((0[1-9]|[1-2][0-9])|(3[0-1]))"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+    </xsd:all>
+  </xsd:complexType>
+  <!-- 中獎項目資料-->
+  <xsd:complexType name="Details">
+    <xsd:sequence>
+      <xsd:element name="PrizeInvoice" minOccurs="1" maxOccurs="9999">
+        <xsd:complexType>
+          <xsd:all>
+            <!-- 發票字軌 -->
+            <xsd:element name="InvTrack">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:string">
+                  <xsd:maxLength value="2" />
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+            <!-- 發票號碼 -->
+            <xsd:element name="InvoiceNumber" type="InvoiceNumberType" />
+            <!-- 發票日期 -->
+            <xsd:element name="InvoiceDate" type="DateType"/>
+            <!-- 發票時間 -->
+            <xsd:element name="InvoiceTime" type="TimeType" minOccurs="0"/>
+            <!-- 賣方資訊 -->
+            <xsd:element name="Seller">
+              <xsd:complexType mixed="false">
+                <xsd:group ref="RoleDescriptionType"/>
+              </xsd:complexType>
+            </xsd:element>
+            <!-- 買方統編 -->
+            <xsd:element name="BuyerId" type="BAN"/>
+            <!-- 發票總計金額 -->
+            <xsd:element name="TotalAmount">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:decimal">
+                  <xsd:totalDigits value="20" />
+                  <xsd:fractionDigits value="7" />
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+            <!-- 載具類別號碼 -->
+            <xsd:element name="CarrierType" type="CarrierTypeEnum" minOccurs="0"/>
+            <!-- 載具類別名稱 -->
+            <xsd:element name="CarrierTypeName" minOccurs="0">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:string">
+                  <xsd:maxLength value="60"/>
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+            <!-- 載具顯碼Id -->
+            <xsd:element name="CarrierId1" minOccurs="0">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:string">
+                  <xsd:maxLength value="400"/>
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+            <!-- 載具隱碼Id2 -->
+            <xsd:element name="CarrierId2" minOccurs="0">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:string">
+                  <xsd:maxLength value="400"/>
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+            <!-- 發票防偽隨機碼 -->
+            <xsd:element name="RandomNumber" minOccurs="0">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:string">
+                  <xsd:maxLength value="4"/>
+                  <xsd:pattern value="[0-9][0-9][0-9][0-9]"/>
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+            <!-- 中獎獎別 -->
+            <xsd:element name="PrizeType">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:string">
+                  <xsd:maxLength value="1" />
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+            <!-- 中獎金額 -->
+            <xsd:element name="PrizeAmount">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:decimal">
+                  <xsd:totalDigits value="10" />
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+            <!-- 匯款註記 -->
+            <xsd:element name="DepositMark">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:string">
+                  <xsd:maxLength value="1" />
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+            <!-- 領獎方式資料類別 -->
+            <xsd:element name="RedeemDataType">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:string">
+                  <xsd:maxLength value="1" />
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+            <!-- 中獎發票資料來源 -->
+            <xsd:element name="PrizeDataSource">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:string">
+                  <xsd:maxLength value="2" />
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+            <!-- 列印格式 -->
+            <xsd:element name="PrintType">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:string">
+                  <xsd:maxLength value="2" />
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+          </xsd:all>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+</xsd:schema>

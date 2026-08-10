@@ -1,0 +1,17 @@
+{
+  "tw-test-company": {
+    "environment": "TEST",
+    "sftp": {
+      "host": "tsftp.einvoice.nat.gov.tw",
+      "port": 2222,
+      "hostKeySha256": "SHA256:REPLACE_WITH_PINNED_HOST_KEY",
+      "inbox": "in",
+      "outbox": "out"
+    },
+    "gateway": {
+      "baseUrl": "https://tgw.einvoice.nat.gov.tw/gateway/api",
+      "timeoutMs": 60000
+    },
+    "crossBorderSellerIds": []
+  }
+}

@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsd:schema xmlns="urn:GEINV:eInvoiceMessage:E0503:4.1"
+            xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="urn:GEINV:eInvoiceMessage:E0503:4.1"
+            elementFormDefault="qualified"
+            attributeFormDefault="unqualified">
+  <xsd:include schemaLocation="../GenericType_4.0.xsd" />
+  <!-- 進項折讓單 -->
+  <xsd:element name="InputAllowance">
+    <xsd:complexType>
+      <xsd:all>
+        <!-- Main -->
+        <xsd:element name="Main" type="Main" />
+        <!-- Details -->
+        <xsd:element name="Details" type="Details" />
+        <!-- Amount -->
+        <xsd:element name="Amount" type="Amount" />
+        <!-- Cancel -->
+        <xsd:element name="Cancel" type="Cancel" minOccurs="0" />
+        <!-- Void -->
+        <xsd:element name="Void" type="Void" minOccurs="0" />
+      </xsd:all>
+    </xsd:complexType>
+  </xsd:element>
+  <!-- 主檔資料 -->
+  <xsd:complexType name="Main">
+    <xsd:all>
+      <!-- 折讓單號碼 -->
+      <xsd:element name="AllowanceNumber" type="AllowanceNumberType" />
+      <!-- 折讓單日期 -->
+      <xsd:element name="AllowanceDate" type="DateType" />
+      <!-- 折讓單當下狀態 -->
+      <xsd:element name="CurrentStatus">
+        <xsd:simpleType>
+          <xsd:restriction base="xsd:string">
+            <xsd:maxLength value="1" />
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+      <!-- 營業類別 -->
+      <!-- <xsd:element name="BusinessType">
+        <xsd:simpleType>
+          <xsd:restriction base="xsd:string">
+            <xsd:maxLength value="1" />
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> -->
+      <!-- 賣方統一編號 -->
+      <xsd:element name="SellerId" type="BAN"/>
+      <!-- 賣方名稱-->
+      <xsd:element name="SellerName" minOccurs="0">
+        <xsd:simpleType>
+          <xsd:restriction base="xsd:string">
+            <xsd:minLength value="1" />
+            <xsd:maxLength value="60" />
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+      <!-- 買方統一編號 -->
+      <xsd:element name="BuyerId"  type="BAN"/>
+      <!-- 買方名稱-->
+      <xsd:element name="BuyerName" minOccurs="0">
+        <xsd:simpleType>
+          <xsd:restriction base="xsd:string">
+            <xsd:minLength value="1" />
+            <xsd:maxLength value="60" />
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+      <xsd:element name="AllowanceType" type="AllowanceTypeEnum" />
+      <!-- 原始發票賣方統編欄位 -->
+			<xsd:element name="OriginalInvoiceSellerId" type="BAN"  minOccurs="0"/>
+			<!-- 原始發票買方統編欄位 -->
+			<xsd:element name="OriginalInvoiceBuyerId" type="BAN"  minOccurs="0"/>
+    </xsd:all>
+  </xsd:complexType>
+  <!-- 明細資料-->
+  <xsd:complexType name="Details">
+    <xsd:sequence>
+      <xsd:element name="ProductItem" minOccurs="1" maxOccurs="9999">
+        <xsd:complexType>
+          <xsd:all>
+            <!-- 發票日期 -->
+            <xsd:element name="OriginalInvoiceDate" type="DateType" />
+            <!-- 發票號碼 -->
+            <xsd:element name="OriginalInvoiceNumber" type="InvoiceNumberType" />
+            <!-- 原品名排列序號 -->
+            <xsd:element name="OriginalSequenceNumber" minOccurs="0">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:string">
+                  <xsd:maxLength value="4" />
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+            <!-- 原品名 -->
+            <xsd:element name="OriginalDescription">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:string">
+                  <xsd:maxLength value="500" />
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+            <!-- 數量 -->
+            <xsd:element name="Quantity">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:decimal">
+                  <xsd:totalDigits value="20" />
+                  <xsd:fractionDigits value="7" />
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+            <!-- 單位 -->
+            <xsd:element name="Unit" minOccurs="0">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:string">
+                  <xsd:maxLength value="6" />
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+            <!-- 單價 -->
+            <xsd:element name="UnitPrice">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:decimal">
+                  <xsd:totalDigits value="20" />
+                  <xsd:fractionDigits value="7" />
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+            <!-- 金額(不含稅之進貨額) -->
+            <xsd:element name="Amount">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:decimal">
+                  <xsd:totalDigits value="20" />
+                  <xsd:fractionDigits value="7" />
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+            <!-- 營業稅額 -->
+            <xsd:element name="Tax">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:decimal">
+                  <xsd:totalDigits value="20" />
+                  <xsd:fractionDigits value="0" />
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+            <!-- 折讓證明單明細排列序號 -->
+            <xsd:element name="AllowanceSequenceNumber">
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:string">
+                  <xsd:maxLength value="4" />
+                  <xsd:minLength value="1" />
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:element>
+            <!-- 課稅別 -->
+            <xsd:element name="TaxType" type="TaxTypeEnum" />
+          </xsd:all>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+  <!-- 彙總資料 -->
+  <xsd:complexType name="Amount">
+    <xsd:all>
+      <!-- 營業稅額合計 -->
+      <xsd:element name="TaxAmount">
+        <xsd:simpleType>
+          <xsd:restriction base="xsd:decimal">
+            <xsd:totalDigits value="20" />
+            <xsd:fractionDigits value="7" />
+            <xsd:minInclusive value="0"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+      <!-- 金額(不含稅之進貨額)合計 -->
+      <xsd:element name="TotalAmount">
+        <xsd:simpleType>
+          <xsd:restriction base="xsd:decimal">
+            <xsd:totalDigits value="20" />
+            <xsd:fractionDigits value="7" />
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+    </xsd:all>
+  </xsd:complexType>
+  <!-- 作廢資料 -->
+  <xsd:complexType name="Cancel">
+    <xsd:all>
+      <!-- 作廢日期 -->
+      <xsd:element name="CancelDate" type="DateType"/>
+      <!-- 作廢時間 -->
+      <xsd:element name="CancelTime" type="TimeType"/>
+      <!-- 作廢原因 -->
+      <xsd:element name="CancelReason">
+        <xsd:simpleType>
+          <xsd:restriction base="xsd:string">
+            <xsd:whiteSpace value="collapse" />
+            <xsd:minLength value="1" />
+            <xsd:maxLength value="20" />
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+      <!-- 作廢備註 -->
+      <xsd:element name="CancelRemark" minOccurs="0">
+        <xsd:simpleType>
+          <xsd:restriction base="xsd:string">
+            <xsd:whiteSpace value="collapse" />
+            <xsd:maxLength value="200" />
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+    </xsd:all>
+  </xsd:complexType>
+  <!-- 註銷資料 -->
+	<xsd:complexType name="Void">
+		<xsd:all>
+			<!-- 註銷日期 -->
+			<xsd:element name="VoidDate" type="DateType" minOccurs="0"/>
+			<!-- 註銷時間 -->
+			<xsd:element name="VoidTime" type="TimeType" minOccurs="0"/>
+			<!-- 註銷原因 -->
+			<xsd:element name="VoidReason" minOccurs="0">
+				<xsd:simpleType>
+					<xsd:restriction base="xsd:string">
+						<xsd:whiteSpace value="collapse"/>
+              <xsd:minLength value="1"/>
+						<xsd:maxLength value="20"/>
+					</xsd:restriction>
+				</xsd:simpleType>
+			</xsd:element>
+			<!-- 註銷備註 -->
+			<xsd:element name="VoidRemark" minOccurs="0">
+				<xsd:simpleType>
+					<xsd:restriction base="xsd:string">
+						<xsd:maxLength value="200"/>
+					</xsd:restriction>
+				</xsd:simpleType>
+			</xsd:element>
+		</xsd:all>
+	</xsd:complexType>
+</xsd:schema>

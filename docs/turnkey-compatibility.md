@@ -1,0 +1,58 @@
+# Turnkey 3.2.1 compatibility analysis
+
+Analyzed package: `linux/EINVTurnkey`, Turnkey `3.2.1`, Gateway component `3.1.3`, MIG `4.1`.
+
+## Confirmed from the supplied implementation
+
+- Production endpoints: `sftp.einvoice.nat.gov.tw:2222` and `https://gw.einvoice.nat.gov.tw/gateway/api`.
+- Test endpoints: `tsftp.einvoice.nat.gov.tw:2222` and `https://tgw.einvoice.nat.gov.tw/gateway/api`.
+- SFTP uploads into relative directory `in`; replies are collected from relative directory `out`.
+- The same transport account/password are used for SFTP password authentication and Gateway HTTP Basic auth; Gateway JSON also carries `loginId` and `loginPassword`.
+- Gateway send API: `/pfs001i/uploadInvoiceMessage`; trading partner route API: `/pfs002i/queryTradingPartnerInfo`; cross-border supplier API: `/pfs003i/queryCrossBorderInfo`.
+- Operational Gateway APIs are also implemented: `/pfs004i/queryTurnkeyVersionInfo` and `/pfs005i/queryErrorMessageInfo`.
+- The pfs004 diagnostic identifies this as e-Invoice Turnkey type `E`, matching the supplied client; its runtime metadata reports D1/Cloudflare Workers instead of inventing Java values.
+- Gateway success is `statusCode === 0`; ProcessResult document success code is `00000`.
+- Remote upload filename is the common component `v41-{messageType}-{yyyyMMdd}-{HHmmssSSS}-{uuid}`.
+- Signed files are Base64 text containing attached PKCS#7/CMS, SHA-256 digest and `sha256WithRSAEncryption` SignerInfo, with a 20 MiB Turnkey limit.
+- Turnkey supports software PFX and hardware card signing. This implementation intentionally supports PFX only.
+- MIG 4.1 XSDs shipped with the official package are vendored under `schemas/xsd`.
+
+## Implemented compatibility surface
+
+Outbound message types:
+
+`A0101 A0102 A0201 A0202 A0301 A0302 B0101 B0102 B0201 B0202 E0401 E0402 F0401 F0501 F0701 G0401 G0501 G0701`
+
+The API enforces the v4.1 transport matrix before accepting data: the ten `A*`/`B*` messages are `B2B + EXCHANGE`, `E0401/E0402` are `B2P + MESSAGE`, and the six `F*`/`G*` messages are `B2S + STORAGE`. `G0701` is retained because the supplied Gateway 3.1.3 contains its v4.1 XSD, parser model and InvoiceEnvelope binding and the current manual documents its identifier; the Turnkey 3.2.1 desktop `MessageFormatFactory` omits it from its directory list, so this specific message still requires an explicit Ministry UAT fixture.
+
+Inbound-only message types: `E0501 E0502 E0503 E0504`.
+
+The adapter performs XML safety/root/namespace checks, all official MIG 4.1 XSD validation, all applicable v4X programmatic rules found in Gateway 3.1.3, InvoiceEnvelope validation, attached CMS signing, SFTP upload, Gateway registration, reply CMS verification, per-document ProcessResult correlation, B2B Ack forwarding, signed SummaryResult filename/routing/count consistency checks and reconciliation events, E0501–E0503 forwarding, E0504 current AES-256-CTR and legacy AES-128-CBC decryption, ZIP safety limits, status transition and Finance event publication.
+
+Canonical inbound filenames implemented:
+
+- `v41-{type}-{yyyyMMdd}-{HHmmssSSS}-{uuid}.ProcessResult`
+- `v41-{type}-{yyyyMMdd}-{HHmmssSSS}-{uuid}.Ack`
+- `v41-{partyId}-{yyyyMMdd}-{HHmmssSSS}.E0501|E0502|E0503`
+- `{unit}_{category}_{sellerBan}_{ROCyyyMM}_{yyyyMMddHHmmss}_{seq}_{count}.zip.E0504`
+- `{senderBan}-{senderRouting}-{receiverBan}-{receiverRouting}-{transDate}-{platformDts}[-{count}][.Final].SummaryResult`
+- `{senderBan}_{senderRouting}_{receiverBan}_{receiverRouting}_{transDate}_{platformDts}[-Final].SummaryResult`
+- `v41-{type}-{yyyyMMdd}-{HHmmssSSS}-{uuid}` for an inbound B2B InvoiceEnvelope.
+
+The project’s 18 message XSDs, seven `common/v41` XSDs and two shared generic includes (27 files total) are byte-identical to those embedded in `einvoice-tky-gateway-api-3.1.3.jar`.
+
+Both SummaryResult separator variants are accepted deliberately: the supplied Turnkey implementation and the manual's common filename section use hyphens, while the current manual's detailed daily-summary section specifies underscores and a `-Final` suffix.
+
+## What still requires Ministry test-environment UAT
+
+Static analysis and local tests cannot certify the external protocol. Before production, verify:
+
+- the real PFX chain/key order, algorithm acceptance and certificate registration for the legal entity;
+- the assigned transport account, from/to routing IDs and white-listed Linode IPv4;
+- the Ministry’s current SFTP host-key fingerprint;
+- at least one accepted and rejected fixture for every message type actually used by Finance;
+- ProcessResult/SummaryResult/E0504 filenames and payloads observed from the live test account;
+- retry behaviour for “SFTP succeeded but Gateway response was lost”;
+- maximum batch sizing and Worker CPU under production PFX/key sizes.
+
+Static protocol implementation is complete for the adapter contract. Until those external tests pass, it remains a buildable, testable replacement—not a Ministry-certified deployment.
