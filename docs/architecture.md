@@ -25,7 +25,7 @@ If the Cloudflare account later has an appropriate dedicated egress/static IP pr
 
 1. Finance calls Worker over TLS using adapter bearer authentication.
 2. Worker validates that the PFX opens with the supplied password and that the signing certificate is currently valid.
-3. Worker removes credentials from the business manifest and seals `{platform account/password, PFX/password}` with AES-256-GCM. Account ID and expiry are authenticated additional data.
+3. Worker removes credentials from the business manifest and seals `{MOF transport account/password, PFX/password}` with AES-256-GCM. The original Turnkey GUI `ADMIN/ADMIN` credentials are not part of this service. Account ID and expiry are authenticated additional data.
 4. Encrypted JSON is written to a private R2 object. D1 stores only object key and expiry. Queue and Workflow payloads contain IDs only.
 5. A Workflow decrypts the lease only inside the step that needs it. PFX signing runs inside Worker.
 6. Before each SFTP/Gateway operation, Worker HMAC-authenticates a `/v1/sessions` request to Linode. Linode retains platform account/password only in an in-memory map for at most 5 minutes.

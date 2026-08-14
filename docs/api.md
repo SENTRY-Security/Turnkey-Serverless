@@ -7,7 +7,7 @@ Authorization: Bearer <ADAPTER_API_KEY>
 Content-Type: application/json
 ```
 
-回應不會回傳平台帳密、PFX、PFX 密碼或 R2 credential object key。
+回應不會回傳財政部傳送帳密、PFX、PFX 密碼或 R2 credential object key。原 Turnkey GUI 的 `ADMIN/ADMIN` 不屬於本 API。
 
 ## 1. 設定台灣營業人 adapter account
 
@@ -58,8 +58,8 @@ base64 < signing.pfx | tr -d '\n'
   "toPartyId": "87654321",
   "credentials": {
     "transport": {
-      "loginId": "MOF_PLATFORM_ACCOUNT",
-      "loginPassword": "MOF_PLATFORM_PASSWORD"
+      "loginId": "MOF_TRANSPORT_ACCOUNT",
+      "loginPassword": "MOF_TRANSPORT_PASSWORD"
     },
     "signing": {
       "format": "PFX",

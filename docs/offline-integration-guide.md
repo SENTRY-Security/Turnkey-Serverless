@@ -9,8 +9,8 @@
 - 這是全球 Finance 系統中的台灣 country adapter，只接受 `country: "TW"`，不應把台灣 MIG 欄位加入全球共用財務模型。
 - Cloudflare Worker 負責外部服務 API、驗證、PFX 簽章、D1/R2、Queue、Workflow、Cron 與 Finance events。
 - 財政部的 SFTP 與 Gateway 需要白名單來源 IP，因此仍需一台具有固定 IPv4 的薄型 Linode egress agent。它只處理網路出口、SFTP、Gateway、XSD、下行 CMS 驗證與 E0504 解密，不保存業務狀態。
-- 本案不處理硬體工商憑證或 PKCS#11。可使用財政部平台帳號、平台密碼、含 RSA 私鑰的軟體 PFX/PKCS#12，以及 PFX 密碼。
-- 平台帳密不能取代 PFX：平台帳密用於 SFTP 與 Gateway；PFX 用於財政部要求的 attached PKCS#7/CMS 簽章。
+- 本案不處理硬體工商憑證 runtime 或 PKCS#11。可使用財政部傳送帳號、傳送密碼、含 RSA 私鑰的軟體 PFX/PKCS#12，以及 PFX 密碼；軟體憑證申請／平台登錄階段仍可能依規定一次性使用正卡、自然人憑證或紙本審核。
+- 傳送帳密不能取代 PFX：傳送帳密用於 SFTP 與 Gateway；PFX 用於財政部要求的 attached PKCS#7/CMS 簽章。原 Turnkey GUI 的 `ADMIN/ADMIN` 不屬於 serverless contract。
 - 目前 `POST /v1/submissions` 每次都必須帶 `credentials`。獨立 credential lease API 用於延長收件輪詢與提供過期 submission 的 fallback，不是可替代 `credentials` 的 lease reference。
 - 靜態協定、本機測試、XSD 與建置已驗證；尚未取得真實財政部測試帳號、已登錄 PFX、白名單與官方確認的 SFTP host-key fingerprint，因此不能宣稱已通過財政部 UAT 或取得認證。
 
@@ -27,7 +27,8 @@
 7. `../src/egress/server.ts`、`gateway.ts`、`sftp.ts`：Linode API、財政部 Gateway 與 SFTP 實作。
 8. `../schemas/xsd`：MIG 4.1 結構的 canonical schema；不要依猜測自行發明 XML 欄位。
 9. `../migrations` 與 `../wrangler.jsonc`：持久層與 Cloudflare bindings。
-10. `../test`：既有安全與相容性回歸測試。
+10. `../tools/pfx` 與 `pfx-tool.md`：離線產生 KEY／CSR、組成 PFX、檢查憑證及完整 CA／平台操作邊界。
+11. `../test`：既有安全與相容性回歸測試。
 
 其他摘要文件：
 
@@ -35,13 +36,14 @@
 - `api.md`：精簡 API 範例。
 - `architecture.md`：元件與安全邊界摘要。
 - `turnkey-compatibility.md`：原 Turnkey 3.2.1 相容性結論。
+- `pfx-tool.md`：KEY、CSR、CA CER、PFX、平台登錄與 Finance input 的逐步操作手冊。
 
 ## 2. 已驗證程度與證據邊界
 
 ### 2.1 已在本機確認
 
 - TypeScript Worker 與 Node.js egress 均通過型別檢查與建置。
-- 7 個測試檔、25 個測試涵蓋核心契約、檔名、Envelope、結果解析、PFX/CMS、E0504、credential vault、session 與業務規則。
+- 8 個測試檔、30 個測試涵蓋核心契約、檔名、Envelope、結果解析、Turnkey 3.2.1 KEY／CSR／PFX、PFX/CMS、E0504、credential vault、session 與業務規則。
 - 18 個訊息 XSD、7 個 `common/v41` XSD、2 個 generic include，共 27 個 XSD，與 supplied Gateway 3.1.3 JAR 內資源逐 byte 相同，且可由 `xmllint` 編譯。
 - PFX 往返測試已確認：測試 PFX可產生 attached CMS，digest 使用 SHA-256，SignerInfo 使用 `sha256WithRSAEncryption`，OpenSSL 能驗證並取回原 XML。
 - D1 migration 可在本機套用；Worker 可由 workerd 啟動；Wrangler dry-run 可成功打包。
@@ -50,7 +52,7 @@
 
 ### 2.2 仍需財政部測試環境確認
 
-- 真實平台帳密能否同時登入測試 SFTP 與 Gateway。
+- 真實傳送帳密能否同時登入測試 SFTP 與 Gateway。
 - PFX 是否已由該營業人登錄、憑證鏈與實際金鑰是否被平台接受。
 - Linode IPv4 是否已加入測試與正式環境白名單。
 - 財政部正式提供或確認的 SFTP host-key algorithm 與 SHA-256 fingerprint。
@@ -67,8 +69,8 @@
 | 材料 | 用途 | 會到哪裡 | 是否持久化 |
 |---|---|---|---|
 | `ADAPTER_API_KEY` | Finance 呼叫 Worker 的 service bearer | Finance、Worker | Cloudflare secret |
-| 財政部平台 `loginId` | SFTP username、Gateway Basic 與 JSON body | Worker 短暫解密、Linode memory、財政部 | R2 中以 AES-256-GCM 密封；Linode 不落地 |
-| 財政部平台 `loginPassword` | SFTP password、Gateway Basic 與 JSON body | 同上 | 同上 |
+| 財政部傳送帳號 `loginId` | SFTP username、Gateway Basic 與 JSON body | Worker 短暫解密、Linode memory、財政部 | R2 中以 AES-256-GCM 密封；Linode 不落地 |
+| 財政部傳送密碼 `loginPassword` | SFTP password、Gateway Basic 與 JSON body | 同上 | 同上 |
 | PFX/PKCS#12 bytes | InvoiceEnvelope attached CMS 簽章 | Finance、Worker | R2 中以 AES-256-GCM 密封；不送 Linode |
 | PFX 密碼 | 開啟 PKCS#12 | Finance、Worker | 與 PFX 一起密封；不送 Linode |
 | `CREDENTIAL_ENCRYPTION_KEY` | 加密 credential lease | Worker | Cloudflare secret；必須是 32 random bytes 的標準 Base64 |
@@ -82,13 +84,15 @@
 - PFX 內必須含 RSA private key，以及 public key 與該 private key 相符的 certificate。
 - 憑證的 `notBefore <= now < notAfter`；過期或尚未生效會在 API 接件時拒絕。
 - PFX 密碼可以是空字串，但只有 PFX 本身確實無密碼時才有效。
+- 前項是 Worker 對既有 PKCS#12 的技術相容性；本專案附帶的本機工具以 Turnkey 3.2.1 為相容目標，固定產生 RSA-2048、PKCS#12 `.key`、只有 `CN=<統編>` 且要求 Digital Signature 的 CSR，並強制使用恰好 8 碼 ASCII 英數密碼。完整流程見 [`pfx-tool.md`](pfx-tool.md)。
+- KEY／CSR 產生與 CER→PFX 組裝是受控本機維運工作，不是 Worker endpoint，也不使用 D1、R2、Queue 或 Workflow。只有 CA 核發後的正式 PFX 會依本架構由 Finance 傳入 Worker。
 - 目前不支援 EC private key、硬體卡、PKCS#11、遠端 HSM 或工商憑證讀卡機。
 
 ### 3.2 PFX 不是帳密的替代品
 
 一個成功的傳輸同時需要：
 
-1. 平台帳密：登入 SFTP，並呼叫 pfs001/pfs002/pfs003/pfs004/pfs005。
+1. 傳送帳密：登入 SFTP，並呼叫 pfs001/pfs002/pfs003/pfs004/pfs005。
 2. PFX 與 PFX 密碼：由 Worker 將 InvoiceEnvelope 產生 attached CMS。
 3. 白名單 Linode IPv4：讓 SFTP/Gateway 看到允許的來源位址。
 4. 已核對的 SFTP host key：避免將帳密送給偽造的 SSH server。
@@ -315,7 +319,7 @@ sequenceDiagram
 8. 解析傳送 parties；EXCHANGE 以 pfs002 取得收方 routing，cache 24 小時。
 9. 產生並保存 InvoiceEnvelope；Durable Object 以 account 為分區保留 filename；狀態 `PACKED`。
 10. 再驗證 Envelope XSD，以 PFX 產生 attached CMS，保存 signed artifact；狀態 `SIGNED`。
-11. Worker 將平台帳密放入 Linode 一次性 session，SFTP 先寫 `{filename}.uploading`、驗 size，再 rename 到 `in/{filename}`；狀態 `SFTP_UPLOADED`。
+11. Worker 將傳送帳密放入 Linode 一次性 session，SFTP 先寫 `{filename}.uploading`、驗 size，再 rename 到 `in/{filename}`；狀態 `SFTP_UPLOADED`。
 12. Worker 建立另一個一次性 session，呼叫 pfs001；成功必須 `statusCode === 0`；狀態 `API_ACCEPTED`。
 13. 狀態進入 `WAITING_RESULT`，發布 Finance event。
 14. 後續 Cron/Inbound Workflow 收到 `.ProcessResult`，以 account + UUID + messageDts 對應 submission，驗證 protocol fields，更新每張文件 outcome。
@@ -591,6 +595,8 @@ GET /v1/accounts/{accountId}
 
 ### 11.3 準備 PFX Base64
 
+若尚未取得 PFX，先依 [`pfx-tool.md`](pfx-tool.md) 使用專案內建 Turnkey 3.2.1 相容 CLI，在受控本機產生 PKCS#12 `.key`／CSR、向 CA 取得 CER、組成 PFX、完成平台登錄與 TEST UAT。只提交 CSR，務必保留原 `.key` 與八碼密碼；不要用 `.key` 內的暫時 self-signed certificate 代替 CA 核發。
+
 ```bash
 base64 < signing.pfx | tr -d '\n'
 ```
@@ -628,8 +634,8 @@ POST /v1/submissions
   "toPartyId": "87654321",
   "credentials": {
     "transport": {
-      "loginId": "MOF_PLATFORM_ACCOUNT",
-      "loginPassword": "MOF_PLATFORM_PASSWORD"
+      "loginId": "MOF_TRANSPORT_ACCOUNT",
+      "loginPassword": "MOF_TRANSPORT_PASSWORD"
     },
     "signing": {
       "format": "PFX",
@@ -714,8 +720,8 @@ Body 只放 submission 中 `credentials` 物件：
 ```json
 {
   "transport": {
-    "loginId": "MOF_PLATFORM_ACCOUNT",
-    "loginPassword": "MOF_PLATFORM_PASSWORD"
+    "loginId": "MOF_TRANSPORT_ACCOUNT",
+    "loginPassword": "MOF_TRANSPORT_PASSWORD"
   },
   "signing": {
     "format": "PFX",
@@ -895,7 +901,7 @@ switch (request.country) {
 
 - 在全球 invoice table 加 `fromVac`、`toVac`、`pfsRetry`。
 - 讓非台灣 country 呼叫本 Worker。
-- 把 PFX 或平台帳密放入 Finance event、D1 metadata、Queue message 或 application log。
+- 把 PFX 或傳送帳密放入 Finance event、D1 metadata、Queue message 或 application log。
 - 讓 Finance consumer 自行解析 ProcessResult；使用 `/documents` 與 events。
 
 ## 14. D1 資料模型
@@ -1232,7 +1238,7 @@ turnkey-egress.your-domain.example {
 curl --fail --silent --show-error https://turnkey-egress.your-domain.example/healthz
 ```
 
-應回 `{"ok":true,"service":"turnkey-egress",...}`。不要把 `EGRESS_BASE_URL` 設成 plain HTTP public IP；平台帳密會經過 Worker→Linode request body，TLS 是必要條件。
+應回 `{"ok":true,"service":"turnkey-egress",...}`。不要把 `EGRESS_BASE_URL` 設成 plain HTTP public IP；傳送帳密會經過 Worker→Linode request body，TLS 是必要條件。
 
 ### 17.8 Linode 上線檢查
 
@@ -1401,7 +1407,7 @@ CREDENTIAL_ENCRYPTION_KEY=<base64-of-32-random-bytes>
 
 ## 19. Secrets 與憑證輪替
 
-### 19.1 平台帳密或 PFX 輪替
+### 19.1 傳送帳密或 PFX 輪替
 
 1. 確認新 PFX 含 RSA private key、密碼正確、有效期正確且已在財政部端完成必要登錄。
 2. 對 TEST account 呼叫 credential-lease endpoint。
@@ -1580,7 +1586,7 @@ ORDER BY updated_at DESC;
 
 ### 22.1 前置證據
 
-- TEST 平台帳號/密碼取得方式與保管人。
+- TEST 傳送帳號/密碼取得方式與保管人。
 - TEST PFX、密碼、certificate subject/serial/expiry，確認含 private key。
 - TEST Linode public IPv4 已白名單。
 - TEST SFTP host key 已由財政部第二通道確認。
@@ -1640,7 +1646,7 @@ ORDER BY updated_at DESC;
 ### 24.1 不可破壞的 invariants
 
 1. `country` 必須固定 `TW`，不得將本 adapter 泛化成全球共用 XML service。
-2. 平台帳密與 PFX 必須保持不同用途；不可移除 PFX 簽章。
+2. 傳送帳密與 PFX 必須保持不同用途；不可移除 PFX 簽章。
 3. PFX 不得送到 Linode。
 4. Queue/Workflow/D1/source manifest 不得保存 plaintext credential。
 5. Linode credential session 必須 profile-bound、短 TTL、one-time consume。
@@ -1692,7 +1698,7 @@ npx wrangler d1 migrations apply TURNKEY_DB --local
 本機官方 Turnkey 手冊：
 
 ```text
-../tmp/pdfs/turnkey-manual-322.pdf
+./Turnkey使用說明書.pdf
 ```
 
 本文件已將整合必需的協定資訊寫入，不要求離線 Claude Code 一定能解析 PDF。需要人工追溯時可參考：
@@ -1704,13 +1710,14 @@ npx wrangler d1 migrations apply TURNKEY_DB --local
 | 270 | 259 | 底線 SummaryResult、`-Final` quantity/detail |
 | 334 | 323 | PFX 軟體憑證設定與密碼驗證 |
 
-Supplied binary/source evidence：
+分析時使用的 supplied binary/source evidence 如下；JAR 不屬於 Worker runtime dependency，離線整合者應以本文件、測試與已 vendored XSD 為準：
 
 ```text
-../../linux/EINVTurnkey/modules/einvoice-tky-turnkey-3.2.1.jar
-../../linux/EINVTurnkey/modules/einvoice-tky-gateway-api-3.1.3.jar
-../../linux/EINVTurnkey/einvTurnkeyConfig.xml
-../../linux/EINVTurnkey/einvUserConfig.xml
+einvoice-tky-turnkey-3.2.1.jar
+einvoice-tky-gateway-api-3.1.3.jar
+cht-kms-core-0.1.0.jar
+einvTurnkeyConfig.xml
+einvUserConfig.xml
 ```
 
 注意：`tmp/` 已列入 `.gitignore`。若把 repository 打包到另一個完全離線環境且需要保留官方 PDF，必須在不違反授權與內部文件政策的前提下，另外把 PDF 一起移交；本 Markdown 本身仍足以說明目前 adapter integration contract。

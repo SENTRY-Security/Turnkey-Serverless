@@ -6,11 +6,11 @@
 
 可重製，但不是「100% 只用 Cloudflare」：財政部 SFTP 與 Gateway 要求白名單來源 IP，因此保留一個極薄的 Linode egress agent。其餘接件、驗證、封裝、PFX 簽章、排程、狀態與檔案保存均在 Cloudflare。
 
-> **離線整合必讀：** 若要把本專案交給無網路環境的 Claude Code，或由 Finance／Cloudflare／Linode 維運人員實際部署，請先閱讀 [Finance Taiwan e-Invoice Adapter：離線整合、部署與操作完整手冊](docs/offline-integration-guide.md)。該文件完整列出認證材料、18+4 種 MIG 協定、API/RPC contract、HMAC canonical string、D1/R2 layout、部署順序、UAT、錯誤處理與不可破壞的安全條件。
+> **離線整合必讀：** 若要把本專案交給無網路環境的 Claude Code，或由 Finance／Cloudflare／Linode 維運人員實際部署，請先閱讀 [Finance Taiwan e-Invoice Adapter：離線整合、部署與操作完整手冊](docs/offline-integration-guide.md)。該文件完整列出認證材料、18+4 種 MIG 協定、API/RPC contract、HMAC canonical string、D1/R2 layout、部署順序、UAT、錯誤處理與不可破壞的安全條件。KEY／CSR／CER／PFX 的申請與操作另有 [Turnkey 軟體憑證 PFX 離線工具完整操作手冊](docs/pfx-tool.md)，整合前必須一併閱讀。
 
 ```mermaid
 flowchart LR
-  F["Global Finance"] -->|"TW adapter request + 平台帳密 + PFX"| W["Cloudflare Worker"]
+  F["Global Finance"] -->|"TW adapter request + 傳送帳密 + PFX"| W["Cloudflare Worker"]
   W -->|"AES-256-GCM encrypted lease"| R["Private R2"]
   W --> D["D1 metadata"]
   W --> Q["Queue"]
@@ -24,9 +24,9 @@ flowchart LR
 
 重要認證邊界：
 
-- 財政部平台帳號／密碼用於 SFTP 與 Gateway HTTP Basic + JSON login 欄位。
+- 財政部「傳送帳號／傳送密碼」用於 SFTP 與 Gateway HTTP Basic + JSON login 欄位；原 Turnkey GUI 的 `ADMIN/ADMIN` 不使用。
 - PFX／PKCS#12 與 PFX 密碼用於 attached PKCS#7/CMS 封套簽章。
-- 帳密不能取代憑證簽章；硬體工商憑證不是必備，本專案只支援軟體 PFX。
+- 傳送帳密不能取代憑證簽章；Worker 日常運行不需要硬體工商憑證，本專案只支援軟體 PFX。申請／登錄軟體憑證時，仍可能依 CA 與平台規定一次性使用工商憑證正卡、負責人自然人憑證或紙本審核。
 - API 收到敏感資料後立即加密；Queue、Workflow params、D1 與 source manifest 都不保存明文。
 - Linode 不保存帳密或 PFX。Worker 每次操作建立最長 5 分鐘、使用一次即銷毀的記憶體 session。
 - Credential lease 到期後由 Cron 分批刪除 R2 密文，D1 僅保留已清除 object key 與時間的稽核紀錄。
@@ -39,6 +39,7 @@ flowchart LR
 - `schemas/xsd`: 原 Turnkey 3.2.1 所附 MIG 4.1 XSD。
 - `migrations`: D1 schema。
 - `deploy/egress`: Linode Docker/systemd/Caddy 範例。
+- `tools/pfx`: Turnkey 3.2.1 行為相容的本機 TypeScript CLI；產生 PKCS#12 `.key`／CSR、以 CA CER 組成 PFX，並檢查 key/certificate match。
 - `docs`: API、安全與相容性分析。
 
 ## 本機驗證
@@ -54,6 +55,21 @@ npx wrangler d1 migrations apply TURNKEY_DB --local
 ```
 
 目前自動驗證涵蓋契約、六種官方 inbound 檔名家族、envelope、逐張 ProcessResult 對應、SummaryResult、E0504 AES／ZIP、Gateway 3.1.3 程式規則、AES-GCM credential lease、一次性 egress session，以及「測試 PFX → attached CMS/SHA-256/RSA OID → OpenSSL 驗證 → 原 XML」往返。
+
+### 產生軟體 PFX
+
+本專案附帶 Turnkey 3.2.1 行為相容的離線 TypeScript CLI。它依原廠 `PFXBuilder`／`PFXKeyStore` 實作重製固定的 RSA-2048、PKCS#12 `.key`、`CN=<統編>`、`extensionRequest/keyUsage=Digital Signature` 與 SHA256withRSA CSR。`.key` 內含原廠流程所需的一年期暫時自簽憑證；它只用來把 private key 放入 PKCS#12 KeyStore，不能作為正式憑證。正式 PFX 一定要等 CA 核發 CER 後才能組成。
+
+這是 repository 內的**本機離線維運工具**，不是 Worker endpoint；KEY、CSR 產生和 CER→PFX 組裝都不在 Cloudflare 執行，也不會把 private key 傳到 Worker、R2、D1、Queue、Workflow、Linode 或 CA。
+
+```bash
+npm run pfx -- request --ban 12345678
+npm run pfx -- inspect-key --key ./12345678_20241231115134.key
+npm run pfx -- assemble --key ./12345678_20241231115134.key --cer ./issued.cer --out ./signing.pfx
+npm run pfx -- inspect --pfx ./signing.pfx
+```
+
+只上傳 `.csr`；`.key` 與同一組八碼密碼必須保存到 CER 核發並完成 PFX 組裝。完整申請順序、每個畫面要做什麼、檔案辨識、CA 邊界、備份、驗證、Finance API 對應與錯誤排查見 [docs/pfx-tool.md](docs/pfx-tool.md)。密碼只接受互動式 TTY 隱藏輸入，不可放入 command line、環境變數或 CI log。
 
 ### 協定範圍
 
@@ -79,11 +95,11 @@ npx wrangler d1 migrations apply TURNKEY_DB --local
 
 3. 在 Linode 設定相同的 `EGRESS_HMAC_SECRET`，釘選財政部 SFTP host key，並以 TLS 網域公開 egress endpoint。財政部公開的 Turnkey 文件目前只列出 SFTP 主機、IP 與 Port，原始 Turnkey 套件也沒有附可直接信任的 `known_hosts` 或 SHA-256 fingerprint；`deploy/egress/accounts.example.json` 中的 `SHA256:REPLACE_WITH_PINNED_HOST_KEY` 因此只是 placeholder，不能直接部署使用，未換成有效 OpenSSH SHA-256 fingerprint 時 egress agent 會拒絕啟動。
 4. 向財政部申請把 Linode IPv4 加入測試／正式環境白名單。
-5. 先在財政部測試環境，以真實平台帳密、已登錄 PFX 與官方測試案例完成 UAT，再切正式環境。
+5. 先在財政部測試環境，以真實傳送帳密、已登錄 PFX 與官方測試案例完成 UAT，再切正式環境。
 
 外部上線必備資料如下，缺一不可：
 
-- 財政部測試／正式平台帳號與密碼；
+- 財政部測試／正式傳送帳號與傳送密碼；
 - 可由該營業人使用、含私鑰且密碼正確的 PFX／PKCS#12；
 - 測試／正式 Gateway 與 SFTP endpoint（預設值已列入範例設定）；
 - 經財政部確認的 SFTP SHA-256 host-key fingerprint；

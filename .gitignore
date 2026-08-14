@@ -5,7 +5,12 @@ dist/
 .env
 coverage/
 tmp/
+private/
 *.log
+*.key
+*.key.pem
+*.csr
+*.csr.pem
 *.pfx
 *.p12
 accounts.json

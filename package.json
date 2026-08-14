@@ -8,16 +8,19 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "npm run typecheck && npm run build:egress && npm run build:worker",
+    "build": "npm run typecheck && npm run build:egress && npm run build:pfx && npm run build:worker",
     "build:egress": "tsc -p tsconfig.egress.json",
+    "build:pfx": "tsc -p tsconfig.pfx.json",
     "build:worker": "wrangler deploy --dry-run --outdir dist/worker",
     "cf:types": "wrangler types",
     "check": "npm run cf:types && npm run typecheck && npm test",
     "dev:worker": "wrangler dev --local",
     "dev:egress": "tsx watch src/egress/server.ts",
+    "pfx": "tsx tools/pfx/cli.ts",
+    "pfx:built": "node dist/tools/pfx/cli.js",
     "start:egress": "node dist/egress/egress/server.js",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit && tsc -p tsconfig.egress.json --noEmit"
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.egress.json --noEmit && tsc -p tsconfig.pfx.json --noEmit"
   },
   "dependencies": {
     "@xmldom/xmldom": "0.9.10",
